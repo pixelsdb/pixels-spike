@@ -1,0 +1,31 @@
+server_config:
+  server_port: 13306
+  request_timeout: 600 # in seconds
+
+  # log config
+  log_level: info # debug/info/warn/error
+  log_to_file: false
+  log_to_std: true
+
+  # resource_pool_config
+  hot_resource_pool: EC2 # EC2/Fargate/FargateSpot
+  cold_resource_pool: Fargate
+
+  # mysql config
+  mysql_dsn: root:spikepassword@tcp(127.0.0.1:3306)/spike?charset=utf8mb4&parseTime=True&loc=Local
+
+  # auto-scaling config
+  auto_scaling_step: 5 # auto-scaling detection step(in seconds)
+  auto_scaling_window: 60 # auto-scaling windows size(in seconds)
+
+aws_config:
+  use_public_ipv4: true
+  aws_cluster: spike_cluster_mini
+  aws_subnets:
+    - subnet-01930cb57dbc12f7e
+    - subnet-0c77aae8c226d039c
+    - subnet-02bd39d1f8b337c22
+  aws_security_groups:
+    - sg-02221dbcd555d5277
+  task_role: PixelsFaaSRole
+  ec2_provider: Infra-ECS-Cluster-spikeclustermini-d985e674-EC2CapacityProvider-FufGynLGFE0q

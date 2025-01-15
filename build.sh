@@ -1,0 +1,1 @@
+go build -o build/spike-server github.com/AgentGuo/spike/cmd/server

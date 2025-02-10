@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v3.20.3
-// source: api/apiserver.proto
+// source: apiserver.proto
 
 package api
 
@@ -25,6 +25,7 @@ const (
 	SpikeService_GetAllFunctions_FullMethodName      = "/spike.SpikeService/GetAllFunctions"
 	SpikeService_GetFunctionResources_FullMethodName = "/spike.SpikeService/GetFunctionResources"
 	SpikeService_ScaleFunction_FullMethodName        = "/spike.SpikeService/ScaleFunction"
+	SpikeService_GetReqScheduleInfo_FullMethodName   = "/spike.SpikeService/GetReqScheduleInfo"
 )
 
 // SpikeServiceClient is the client API for SpikeService service.
@@ -42,6 +43,7 @@ type SpikeServiceClient interface {
 	GetAllFunctions(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*GetAllFunctionsResponse, error)
 	GetFunctionResources(ctx context.Context, in *GetFunctionResourcesRequest, opts ...grpc.CallOption) (*GetFunctionResourcesResponse, error)
 	ScaleFunction(ctx context.Context, in *ScaleFunctionRequest, opts ...grpc.CallOption) (*Empty, error)
+	GetReqScheduleInfo(ctx context.Context, in *GetReqScheduleInfoRequest, opts ...grpc.CallOption) (*GetReqScheduleInfoResponse, error)
 }
 
 type spikeServiceClient struct {
@@ -112,6 +114,16 @@ func (c *spikeServiceClient) ScaleFunction(ctx context.Context, in *ScaleFunctio
 	return out, nil
 }
 
+func (c *spikeServiceClient) GetReqScheduleInfo(ctx context.Context, in *GetReqScheduleInfoRequest, opts ...grpc.CallOption) (*GetReqScheduleInfoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetReqScheduleInfoResponse)
+	err := c.cc.Invoke(ctx, SpikeService_GetReqScheduleInfo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SpikeServiceServer is the server API for SpikeService service.
 // All implementations must embed UnimplementedSpikeServiceServer
 // for forward compatibility.
@@ -127,6 +139,7 @@ type SpikeServiceServer interface {
 	GetAllFunctions(context.Context, *Empty) (*GetAllFunctionsResponse, error)
 	GetFunctionResources(context.Context, *GetFunctionResourcesRequest) (*GetFunctionResourcesResponse, error)
 	ScaleFunction(context.Context, *ScaleFunctionRequest) (*Empty, error)
+	GetReqScheduleInfo(context.Context, *GetReqScheduleInfoRequest) (*GetReqScheduleInfoResponse, error)
 	mustEmbedUnimplementedSpikeServiceServer()
 }
 
@@ -154,6 +167,9 @@ func (UnimplementedSpikeServiceServer) GetFunctionResources(context.Context, *Ge
 }
 func (UnimplementedSpikeServiceServer) ScaleFunction(context.Context, *ScaleFunctionRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ScaleFunction not implemented")
+}
+func (UnimplementedSpikeServiceServer) GetReqScheduleInfo(context.Context, *GetReqScheduleInfoRequest) (*GetReqScheduleInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetReqScheduleInfo not implemented")
 }
 func (UnimplementedSpikeServiceServer) mustEmbedUnimplementedSpikeServiceServer() {}
 func (UnimplementedSpikeServiceServer) testEmbeddedByValue()                      {}
@@ -284,6 +300,24 @@ func _SpikeService_ScaleFunction_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SpikeService_GetReqScheduleInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetReqScheduleInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SpikeServiceServer).GetReqScheduleInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SpikeService_GetReqScheduleInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SpikeServiceServer).GetReqScheduleInfo(ctx, req.(*GetReqScheduleInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SpikeService_ServiceDesc is the grpc.ServiceDesc for SpikeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -315,7 +349,11 @@ var SpikeService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "ScaleFunction",
 			Handler:    _SpikeService_ScaleFunction_Handler,
 		},
+		{
+			MethodName: "GetReqScheduleInfo",
+			Handler:    _SpikeService_GetReqScheduleInfo_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "api/apiserver.proto",
+	Metadata: "apiserver.proto",
 }

@@ -6,22 +6,79 @@ option java_package = "io.pixelsdb.pixels.spike.handler";
 option java_outer_classname = "SpikeServiceProto";
 option go_package = "github.com/AgentGuo/spike/api";
 
+import "google/api/annotations.proto";
+
 // The spike service definition.
 service SpikeService {
   // Calls a function.
-  rpc CallFunction(CallFunctionRequest) returns (CallFunctionResponse);
+  rpc CallFunction(CallFunctionRequest) returns (CallFunctionResponse) {
+    option (google.api.http) = {
+      post: "/v1/call_function"
+      body: "*"
+    };
+  }
 
   // Adds a new function.
-  rpc CreateFunction(CreateFunctionRequest) returns (CreateFunctionResponse);
+  rpc CreateFunction(CreateFunctionRequest) returns (CreateFunctionResponse) {
+    option (google.api.http) = {
+      post: "/v1/create_function"
+      body: "*"
+    };
+  }
 
   // Deletes an existing function.
-  rpc DeleteFunction(DeleteFunctionRequest) returns (DeleteFunctionResponse);
+  rpc DeleteFunction(DeleteFunctionRequest) returns (DeleteFunctionResponse) {
+    option (google.api.http) = {
+      delete: "/v1/delete_function/{function_name}"
+    };
+  }
 
-  rpc GetAllFunctions(Empty) returns (GetAllFunctionsResponse);
+  // Get all functions.
+  rpc GetAllFunctions(Empty) returns (GetAllFunctionsResponse) {
+    option (google.api.http) = {
+      get: "/v1/get_all_functions"
+    };
+  }
 
-  rpc GetFunctionResources(GetFunctionResourcesRequest) returns (GetFunctionResourcesResponse);
+  // Get function resources.
+  rpc GetFunctionResources(GetFunctionResourcesRequest) returns (GetFunctionResourcesResponse) {
+    option (google.api.http) = {
+      get: "/v1/get_function_resources/{function_name}"
+    };
+  }
 
-  rpc ScaleFunction(ScaleFunctionRequest) returns (Empty);
+  // Scale function.
+  rpc ScaleFunction(ScaleFunctionRequest) returns (Empty) {
+    option (google.api.http) = {
+      post: "/v1/scale_function"
+      body: "*"
+    };
+  }
+
+  // Get schedule info.
+  rpc GetReqScheduleInfo(GetReqScheduleInfoRequest) returns (GetReqScheduleInfoResponse) {
+    option (google.api.http) = {
+      get: "/v1/get_req_schedule_info/{function_name}"
+    };
+  }
+}
+
+message GetReqScheduleInfoRequest{
+  string function_name = 1;
+}
+
+message GetReqScheduleInfoResponse{
+  string function_name = 1;
+  message ReqScheduleInfo{
+    uint64 req_id = 1;
+    string req_payload = 2;
+    string function_name = 3;
+    string placed_aws_service_name = 4;
+    string placed_ins_ipv4 = 5;
+    int32 required_cpu = 6;
+    int32 required_memory = 7;
+  }
+  repeated ReqScheduleInfo req_schedule_info = 2;
 }
 
 message Empty {}

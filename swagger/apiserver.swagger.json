@@ -1,0 +1,492 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "apiserver.proto",
+    "version": "version not set"
+  },
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/call_function": {
+      "post": {
+        "summary": "Calls a function.",
+        "operationId": "SpikeService_CallFunction",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/spikeCallFunctionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/spikeCallFunctionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "SpikeService"
+        ]
+      }
+    },
+    "/v1/create_function": {
+      "post": {
+        "summary": "Adds a new function.",
+        "operationId": "SpikeService_CreateFunction",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/spikeCreateFunctionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/spikeCreateFunctionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "SpikeService"
+        ]
+      }
+    },
+    "/v1/delete_function/{function_name}": {
+      "delete": {
+        "summary": "Deletes an existing function.",
+        "operationId": "SpikeService_DeleteFunction",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/spikeDeleteFunctionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "function_name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SpikeService"
+        ]
+      }
+    },
+    "/v1/get_all_functions": {
+      "get": {
+        "operationId": "SpikeService_GetAllFunctions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/spikeGetAllFunctionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "tags": [
+          "SpikeService"
+        ]
+      }
+    },
+    "/v1/get_function_resources/{function_name}": {
+      "get": {
+        "operationId": "SpikeService_GetFunctionResources",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/spikeGetFunctionResourcesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "function_name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SpikeService"
+        ]
+      }
+    },
+    "/v1/get_req_schedule_info/{function_name}": {
+      "get": {
+        "operationId": "SpikeService_GetReqScheduleInfo",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/spikeGetReqScheduleInfoResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "function_name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SpikeService"
+        ]
+      }
+    },
+    "/v1/scale_function": {
+      "post": {
+        "operationId": "SpikeService_ScaleFunction",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/spikeEmpty"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/spikeScaleFunctionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "SpikeService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "GetReqScheduleInfoResponseReqScheduleInfo": {
+      "type": "object",
+      "properties": {
+        "req_id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "req_payload": {
+          "type": "string"
+        },
+        "function_name": {
+          "type": "string"
+        },
+        "placed_aws_service_name": {
+          "type": "string"
+        },
+        "placed_ins_ipv4": {
+          "type": "string"
+        },
+        "required_cpu": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "required_memory": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "runtimeError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "spikeCallFunctionRequest": {
+      "type": "object",
+      "properties": {
+        "function_name": {
+          "type": "string"
+        },
+        "payload": {
+          "type": "string"
+        },
+        "cpu": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "memory": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "description": "The request message containing the function name and input."
+    },
+    "spikeCallFunctionResponse": {
+      "type": "object",
+      "properties": {
+        "payload": {
+          "type": "string"
+        },
+        "error_code": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "description": "The response message containing the function output."
+    },
+    "spikeCreateFunctionRequest": {
+      "type": "object",
+      "properties": {
+        "function_name": {
+          "type": "string"
+        },
+        "image_url": {
+          "type": "string"
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/spikeResourceSpec"
+          }
+        }
+      },
+      "description": "The request message for adding a new function."
+    },
+    "spikeCreateFunctionResponse": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "description": "The response message for adding a new function."
+    },
+    "spikeDeleteFunctionResponse": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "description": "The response message for deleting a function."
+    },
+    "spikeEmpty": {
+      "type": "object"
+    },
+    "spikeFunctionMetaData": {
+      "type": "object",
+      "properties": {
+        "function_name": {
+          "type": "string"
+        },
+        "image_url": {
+          "type": "string"
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/spikeResourceSpec"
+          }
+        }
+      }
+    },
+    "spikeGetAllFunctionsResponse": {
+      "type": "object",
+      "properties": {
+        "functions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/spikeFunctionMetaData"
+          }
+        }
+      }
+    },
+    "spikeGetFunctionResourcesResponse": {
+      "type": "object",
+      "properties": {
+        "function_name": {
+          "type": "string"
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/spikeResourceStatus"
+          }
+        }
+      }
+    },
+    "spikeGetReqScheduleInfoResponse": {
+      "type": "object",
+      "properties": {
+        "function_name": {
+          "type": "string"
+        },
+        "req_schedule_info": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GetReqScheduleInfoResponseReqScheduleInfo"
+          }
+        }
+      }
+    },
+    "spikeResourceSpec": {
+      "type": "object",
+      "properties": {
+        "cpu": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "memory": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "min_replica": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "max_replica": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "spikeResourceStatus": {
+      "type": "object",
+      "properties": {
+        "ipv4": {
+          "type": "string"
+        },
+        "cpu": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "memory": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "launch_type": {
+          "type": "string"
+        },
+        "last_status": {
+          "type": "string"
+        },
+        "desired_status": {
+          "type": "string"
+        }
+      }
+    },
+    "spikeScaleFunctionRequest": {
+      "type": "object",
+      "properties": {
+        "function_name": {
+          "type": "string"
+        },
+        "cpu": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "memory": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "scale_cnt": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    }
+  }
+}

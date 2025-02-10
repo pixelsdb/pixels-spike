@@ -24,9 +24,11 @@ import (
 	"github.com/AgentGuo/spike/pkg/funcmanager"
 	"github.com/AgentGuo/spike/pkg/logger"
 	"github.com/AgentGuo/spike/pkg/reqscheduler"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/sirupsen/logrus"
 	"log"
 	"net"
+	"net/http"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -35,12 +37,12 @@ import (
 type server struct {
 	logger *logrus.Logger
 	api.UnimplementedSpikeServiceServer
-	funcManager  *funcmanager.FuncManager
-	funcDispatch *reqscheduler.ReqScheduler
+	funcManager   *funcmanager.FuncManager
+	funcScheduler *reqscheduler.ReqScheduler
 }
 
 func (s *server) CallFunction(ctx context.Context, req *api.CallFunctionRequest) (*api.CallFunctionResponse, error) {
-	resp, err := s.funcDispatch.CallFunction(req)
+	resp, err := s.funcScheduler.CallFunction(req)
 	if err != nil {
 		s.logger.Errorf("call function %s failed, err: %v", req.FunctionName, err)
 	}
@@ -92,8 +94,31 @@ func (s *server) ScaleFunction(ctx context.Context, req *api.ScaleFunctionReques
 	return &api.Empty{}, nil
 }
 
+func (s *server) GetReqScheduleInfo(ctx context.Context, req *api.GetReqScheduleInfoRequest) (*api.GetReqScheduleInfoResponse, error) {
+	s.logger.Infof("get req schedule info, function name: %s", req.FunctionName)
+	reqScheduleInfo, err := s.funcScheduler.GetReqScheduleInfo(req.FunctionName)
+	if err != nil {
+		s.logger.Errorf("get req schedule info failed, %v", err)
+		return nil, err
+	}
+	s.logger.Infof("get req schedule info success, function name: %s", req.FunctionName)
+	resp := &api.GetReqScheduleInfoResponse{}
+	for _, info := range reqScheduleInfo {
+		resp.ReqScheduleInfo = append(resp.ReqScheduleInfo, &api.GetReqScheduleInfoResponse_ReqScheduleInfo{
+			ReqId:                info.ReqId,
+			ReqPayload:           info.ReqPayload,
+			FunctionName:         info.FunctionName,
+			PlacedAwsServiceName: info.PlacedAwsServiceName,
+			PlacedInsIpv4:        info.PlacedInsIpv4,
+			RequiredCpu:          info.RequiredCpu,
+			RequiredMemory:       info.RequiredMemory,
+		})
+	}
+	return resp, nil
+}
+
 func StartApiServer() {
-	address := fmt.Sprintf("0.0.0.0:%d", config.GetConfig().ServerConfig.ServerPort)
+	address := fmt.Sprintf("0.0.0.0:%d", config.GetConfig().ServerConfig.GrpcPort)
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
@@ -101,16 +126,33 @@ func StartApiServer() {
 
 	grpcServer := grpc.NewServer()
 	api.RegisterSpikeServiceServer(grpcServer, &server{
-		logger:       logger.GetLogger(),
-		funcManager:  funcmanager.NewFuncManager(),
-		funcDispatch: reqscheduler.NewReqScheduler(),
+		logger:        logger.GetLogger(),
+		funcManager:   funcmanager.NewFuncManager(),
+		funcScheduler: reqscheduler.NewReqScheduler(),
 	})
 
 	// Register reflection service on gRPC server.
 	reflection.Register(grpcServer)
 
-	log.Printf("gRPC server is running on port %d\n", config.GetConfig().ServerConfig.ServerPort)
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
+	go func() {
+		log.Printf("gRPC server is running on port %d\n", config.GetConfig().ServerConfig.GrpcPort)
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Failed to serve: %v", err)
+		}
+	}()
+
+	// Start HTTP server (gRPC Gateway)
+	mux := runtime.NewServeMux()
+	opts := []grpc.DialOption{grpc.WithInsecure()}
+	err = api.RegisterSpikeServiceHandlerFromEndpoint(context.Background(), mux,
+		fmt.Sprintf("localhost:%d", config.GetConfig().ServerConfig.GrpcPort), opts)
+	if err != nil {
+		log.Fatalf("Failed to start HTTP server: %v", err)
+	}
+
+	httpAddress := fmt.Sprintf("0.0.0.0:%d", config.GetConfig().ServerConfig.HttpPort)
+	log.Printf("HTTP server is running on port %d\n", config.GetConfig().ServerConfig.HttpPort)
+	if err := http.ListenAndServe(httpAddress, mux); err != nil {
+		log.Fatalf("Failed to serve HTTP: %v", err)
 	}
 }

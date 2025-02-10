@@ -1,5 +1,6 @@
 server_config:
-  server_port: 13306
+  grpc_port: 13306
+  http_port: 8080
   request_timeout: 600 # in seconds
 
   # log config

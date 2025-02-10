@@ -21,8 +21,10 @@ import "gorm.io/gorm"
 type ReqScheduleInfo struct {
 	gorm.Model
 	ReqId                uint64 `gorm:"column:req_id;primaryKey"`
+	ReqPayload           string `gorm:"column:req_payload"`
 	FunctionName         string `gorm:"column:function_name;index:idx_function_name"`
 	PlacedAwsServiceName string `gorm:"column:placed_aws_service_name;index:idx_aws_service_name"`
+	PlacedInsIpv4        string `gorm:"column:placed_ins_ipv4"`
 	RequiredCpu          int32  `gorm:"column:required_cpu"`
 	RequiredMemory       int32  `gorm:"column:required_memory"`
 }

@@ -36,7 +36,8 @@ type SpikeConfig struct {
 }
 
 type ServerConfig struct {
-	ServerPort     int `yaml:"server_port"`
+	GrpcPort       int `yaml:"grpc_port"`
+	HttpPort       int `yaml:"http_port"`
 	RequestTimeout int `yaml:"request_timeout"`
 
 	// log config
@@ -74,7 +75,8 @@ func GetConfig() *SpikeConfig {
 	configOnce.Do(func() {
 		configInstance = &SpikeConfig{
 			ServerConfig: ServerConfig{
-				ServerPort:        13306,
+				GrpcPort:          13306,
+				HttpPort:          8080,
 				RequestTimeout:    600,
 				LogLevel:          "debug",
 				LogToFile:         false,

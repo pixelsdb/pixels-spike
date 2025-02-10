@@ -172,8 +172,10 @@ func (r *ReqScheduler) Schedule() {
 	}
 	newReqScheduleInfo := &model.ReqScheduleInfo{
 		ReqId:                req.RequestID,
+		ReqPayload:           req.ReqPayload,
 		FunctionName:         req.FunctionName,
 		PlacedAwsServiceName: choseAwsServiceName,
+		PlacedInsIpv4:        chosenInsIpv4,
 		RequiredCpu:          req.RequiredCpu,
 		RequiredMemory:       req.RequiredMemory,
 	}
@@ -265,4 +267,9 @@ func (r *ReqScheduler) CallInstanceFunction(reqPayload string, reqID uint64, ins
 		return "", err
 	}
 	return funcServiceResp.Payload, nil
+}
+
+// GetReqScheduleInfo 获取函数调度信息
+func (r *ReqScheduler) GetReqScheduleInfo(functionName string) ([]model.ReqScheduleInfo, error) {
+	return r.mysql.GetReqScheduleInfoByFunctionName(functionName)
 }

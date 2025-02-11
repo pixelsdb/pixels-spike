@@ -66,6 +66,10 @@ func NewReqScheduler() *ReqScheduler {
 		triggerCh:      make(chan struct{}),
 		requestTimeout: config.GetConfig().ServerConfig.RequestTimeout,
 	}
+	err := r.CleanReqScheduleInfo()
+	if err != nil {
+		r.logger.Errorf("clean req schedule info failed, %v", err)
+	}
 	go r.ScheduleRoutine()
 	return r
 }
@@ -272,4 +276,9 @@ func (r *ReqScheduler) CallInstanceFunction(reqPayload string, reqID uint64, ins
 // GetReqScheduleInfo 获取函数调度信息
 func (r *ReqScheduler) GetReqScheduleInfo(functionName string) ([]model.ReqScheduleInfo, error) {
 	return r.mysql.GetReqScheduleInfoByFunctionName(functionName)
+}
+
+// CleanReqScheduleInfo 清除函数调度信息，进程重启时调用
+func (r *ReqScheduler) CleanReqScheduleInfo() error {
+	return r.mysql.DeleteAllReqScheduleInfo()
 }

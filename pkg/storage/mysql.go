@@ -221,6 +221,10 @@ func (m *Mysql) DeleteReqScheduleInfo(requestID uint64) error {
 	return m.db.Unscoped().Where(map[string]interface{}{"req_id": requestID}).Delete(&model.ReqScheduleInfo{}).Error
 }
 
+func (m *Mysql) DeleteAllReqScheduleInfo() error {
+	return m.db.Unscoped().Where("1 = 1").Delete(&model.ReqScheduleInfo{}).Error
+}
+
 func (m *Mysql) UpdateReqScheduleInfo(data *model.ReqScheduleInfo) error {
 	return m.db.Save(data).Error
 }

@@ -18,6 +18,7 @@ server_config:
   # auto-scaling config
   auto_scaling_step: 5 # auto-scaling detection step(in seconds)
   auto_scaling_window: 60 # auto-scaling windows size(in seconds)
+  resource_oversold_ratio: 1.5 # resource oversold ratio
 
 aws_config:
   use_public_ipv4: true

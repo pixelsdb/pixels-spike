@@ -598,6 +598,6 @@ func (f *FuncManager) CalResScale(hisReqQueue *list.List) (map[string][]*ResScal
 	//		})
 	//	}
 	//}
-	f.logger.Debugf("res demand: %v, res scale: %s", avgResDemandMap, utils.GetJson(ret))
+	f.logger.Debugf("avg res demand: %v, history res demand: %v, res scale: %s", avgResDemandMap, resDemandMap, utils.GetJson(ret))
 	return ret, nil
 }

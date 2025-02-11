@@ -53,8 +53,9 @@ type ServerConfig struct {
 	MysqlDsn string `yaml:"mysql_dsn"`
 
 	// auto-scaling config
-	AutoScalingStep   int `yaml:"auto_scaling_step"`
-	AutoScalingWindow int `yaml:"auto_scaling_window"`
+	AutoScalingStep       int     `yaml:"auto_scaling_step"`
+	AutoScalingWindow     int     `yaml:"auto_scaling_window"`
+	ResourceOversoldRatio float64 `yaml:"resource_oversold_ratio"`
 }
 
 type AwsConfig struct {
@@ -75,17 +76,18 @@ func GetConfig() *SpikeConfig {
 	configOnce.Do(func() {
 		configInstance = &SpikeConfig{
 			ServerConfig: ServerConfig{
-				GrpcPort:          13306,
-				HttpPort:          8080,
-				RequestTimeout:    600,
-				LogLevel:          "debug",
-				LogToFile:         false,
-				LogToStd:          true,
-				HotResourcePool:   constants.Fargate,
-				ColdResourcePool:  constants.Fargate,
-				MysqlDsn:          "root:spikepassword@tcp(127.0.0.1:3306)/spike?charset=utf8mb4&parseTime=True&loc=Local",
-				AutoScalingStep:   5,
-				AutoScalingWindow: 60,
+				GrpcPort:              13306,
+				HttpPort:              8080,
+				RequestTimeout:        600,
+				LogLevel:              "debug",
+				LogToFile:             false,
+				LogToStd:              true,
+				HotResourcePool:       constants.Fargate,
+				ColdResourcePool:      constants.Fargate,
+				MysqlDsn:              "root:spikepassword@tcp(127.0.0.1:3306)/spike?charset=utf8mb4&parseTime=True&loc=Local",
+				AutoScalingStep:       5,
+				AutoScalingWindow:     60,
+				ResourceOversoldRatio: 1.5,
 			},
 			AwsConfig: AwsConfig{
 				AwsCluster:        "spike_cluster_mini",

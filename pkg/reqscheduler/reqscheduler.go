@@ -148,6 +148,9 @@ func (r *ReqScheduler) Schedule() {
 		v.cpuUsageRate = float64(v.cpuUsed) / float64(v.cpu)
 		v.memoryUsageRate = float64(v.memoryUsed) / float64(v.memory)
 		v.avgUsageRate = (v.cpuUsageRate + v.avgUsageRate) / 2
+		if v.avgUsageRate > config.GetConfig().ServerConfig.ResourceOversoldRatio {
+			continue
+		}
 		insStatList = append(insStatList, v)
 	}
 

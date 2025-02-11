@@ -29,6 +29,7 @@ import (
 	"github.com/sony/sonyflake"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	"sort"
 	"time"
 )
@@ -146,11 +147,10 @@ func (r *ReqScheduler) Schedule() {
 	insStatList := make([]*instanceStat, 0, len(insStatMap))
 	for _, v := range insStatMap {
 		v.cpuUsageRate = float64(v.cpuUsed) / float64(v.cpu)
-		v.memoryUsageRate = float64(v.memoryUsed) / float64(v.memory)
-		v.avgUsageRate = (v.cpuUsageRate + v.avgUsageRate) / 2
-		if v.avgUsageRate > config.GetConfig().ServerConfig.ResourceOversoldRatio {
-			continue
-		}
+		//v.memoryUsageRate = float64(v.memoryUsed) / float64(v.memory)
+		//v.avgUsageRate = (v.cpuUsageRate + v.avgUsageRate) / 2
+		// 仅考虑cpu使用率
+		v.avgUsageRate = v.cpuUsageRate
 		insStatList = append(insStatList, v)
 	}
 
@@ -223,15 +223,36 @@ func (r *ReqScheduler) SubmitRequest(req *api.CallFunctionRequest, respChan chan
 // CallFunction 对外暴露的函数调用接口
 func (r *ReqScheduler) CallFunction(req *api.CallFunctionRequest) (*api.CallFunctionResponse, error) {
 	respChan := make(chan Response)
-	err := r.SubmitRequest(req, respChan)
-	if err != nil {
-		return nil, err
+	for i := 0; i < config.GetConfig().ServerConfig.MaxRetry; i++ {
+		if i != 0 {
+			r.logger.Warnf("retry to call function %d times", i)
+		}
+		// step1: submit request
+		err := r.SubmitRequest(req, respChan)
+		if err != nil {
+			if i >= config.GetConfig().ServerConfig.MaxRetry-1 {
+				r.logger.Errorf("submit request failed and reach max retry, %v", err)
+				return nil, err
+			} else {
+				r.logger.Warnf("submit request failed, need retry, err: %v", err)
+				continue
+			}
+		}
+
+		// step2: wait response
+		resp := <-respChan
+		if resp.err != nil {
+			if i >= config.GetConfig().ServerConfig.MaxRetry-1 {
+				r.logger.Errorf("get response error and reach max retry, %v", resp.err)
+				return nil, resp.err
+			} else {
+				r.logger.Warnf("get response error, need retry, err: %v", resp.err)
+				continue
+			}
+		}
+		return &api.CallFunctionResponse{ErrorCode: 0, Payload: resp.ResponsePayload}, nil
 	}
-	resp := <-respChan
-	if resp.err != nil {
-		return nil, resp.err
-	}
-	return &api.CallFunctionResponse{ErrorCode: 0, Payload: resp.ResponsePayload}, nil
+	return nil, fmt.Errorf("call function failed")
 }
 
 // CallInstanceFunctionRoutine 调用实例函数的协程
@@ -258,8 +279,15 @@ func (r *ReqScheduler) CallInstanceFunctionRoutine(req *Request, instanceIpv4 st
 // CallInstanceFunction 调用实例函数
 func (r *ReqScheduler) CallInstanceFunction(reqPayload string, reqID uint64, instanceIpv4 string) (string, error) {
 	// TODO: 这里可以做连接复用
-	conn, err := grpc.NewClient(fmt.Sprintf("%s:50052", instanceIpv4), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	kaParams := keepalive.ClientParameters{
+		Time:                20 * time.Second, // 20秒发送一次心跳
+		Timeout:             10 * time.Second, // 等待心跳响应的最大时间
+		PermitWithoutStream: false,            // 即使没有活动流，也允许发送心跳
+	}
+	conn, err := grpc.NewClient(fmt.Sprintf("%s:50052", instanceIpv4), grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithKeepaliveParams(kaParams))
 	if err != nil {
+		r.logger.Errorf("call intance function failed, reqId: %d, connect to instance %s failed, %v", reqID, instanceIpv4, err)
 		return "", err
 	}
 	defer conn.Close() // 确保连接关闭
@@ -271,6 +299,7 @@ func (r *ReqScheduler) CallInstanceFunction(reqPayload string, reqID uint64, ins
 		RequestId: reqID,
 	})
 	if err != nil {
+		r.logger.Errorf("call intance function failed, reqId: %d, call instance %s failed, %v", reqID, instanceIpv4, err)
 		return "", err
 	}
 	return funcServiceResp.Payload, nil

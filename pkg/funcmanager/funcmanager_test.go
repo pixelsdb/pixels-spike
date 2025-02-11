@@ -73,3 +73,17 @@ func TestFuncManager_DeleteFunction(t *testing.T) {
 		})
 	}
 }
+
+func TestFuncManager_MonitorFunctionStatus(t *testing.T) {
+	tests := []struct {
+		name string
+	}{
+		{"test1"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := NewFuncManager()
+			f.MonitorFunctionStatus()
+		})
+	}
+}

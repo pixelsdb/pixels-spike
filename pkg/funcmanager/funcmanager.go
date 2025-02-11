@@ -27,6 +27,7 @@ import (
 	"github.com/AgentGuo/spike/pkg/storage"
 	"github.com/AgentGuo/spike/pkg/storage/model"
 	"github.com/AgentGuo/spike/pkg/utils"
+	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/sirupsen/logrus"
 	"math"
 	"sort"
@@ -66,6 +67,7 @@ func NewFuncManager() *FuncManager {
 			usePublicIpv4:     config.GetConfig().AwsConfig.UsePublicIpv4,
 		}
 		go funcManager.FunctionAutoScaling()
+		go funcManager.MonitorFunctionStatus()
 	})
 	return funcManager
 }
@@ -151,7 +153,6 @@ func (f *FuncManager) CreateFunction(req *api.CreateFunctionRequest) error {
 		f.logger.Errorf("UpdateFuncInstanceBatch failed, err: %v", err)
 		return err
 	}
-	go f.UpdateFunctionStatus(req.FunctionName)
 	return nil
 }
 
@@ -228,8 +229,8 @@ func (f *FuncManager) ScaleFunction(req *api.ScaleFunctionRequest) error {
 			return err
 		}
 		f.logger.Infof("scale function %s success, scale cnt: %d", req.FunctionName, realScaleCnt)
-		go f.UpdateFunctionStatus(req.FunctionName)
 	} else if realScaleCnt < 0 {
+		f.logger.Debugf("skip delete instance, scale cnt: %d", realScaleCnt)
 		for _, instance := range currentInsList {
 			if realScaleCnt >= 0 {
 				break
@@ -248,13 +249,7 @@ func (f *FuncManager) ScaleFunction(req *api.ScaleFunctionRequest) error {
 }
 
 func (f *FuncManager) AsyncDeleteFuncInstance(awsServiceName string) {
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
 	for {
-		select {
-		case <-ticker.C:
-			break
-		}
 		reqList, err := f.mysql.GetReqScheduleInfoByAwsServiceName(awsServiceName)
 		if err != nil {
 			f.logger.Errorf("AsyncDeleteFuncInstance get req schedule info failed, awsServiceName: %s, err: %v", awsServiceName, err)
@@ -265,93 +260,116 @@ func (f *FuncManager) AsyncDeleteFuncInstance(awsServiceName string) {
 			if err != nil {
 				f.logger.Errorf("delete mysql func instance failed, serviceName: %s, err: %v", awsServiceName, err)
 			}
+			f.logger.Debugf("Async delete func instance success, serviceName: %s", awsServiceName)
 			return
 		}
+		time.Sleep(5 * time.Second)
 	}
 }
 
-func (f *FuncManager) UpdateFunctionStatus(functionName string) {
-	startTime := time.Now()
-
+func (f *FuncManager) MonitorFunctionStatus() {
 	for {
-		funcInstances, err := f.mysql.GetFuncInstanceByFunctionName(functionName)
+		funcMetaDataList, err := f.mysql.GetFuncMetaDataByCondition(map[string]interface{}{})
 		if err != nil {
-			return
+			f.logger.Errorf("monitor instance status get func meta data failed, err: %v", err)
+			continue
 		}
-		if isAllReady := f.UpdateFuncInstancesStatus(funcInstances); isAllReady {
-			elapsedTime := time.Since(startTime).Seconds()
-			f.logger.Infof("function %s's all instance is ready, cost time: %fs", functionName, elapsedTime)
-			return
+		for _, funcMetaData := range funcMetaDataList {
+			funcInstances, err := f.mysql.GetFuncInstanceByFunctionName(funcMetaData.FunctionName)
+			if err != nil {
+				f.logger.Errorf("monitor instance status get func instance failed, functionName: %s, err: %v",
+					funcMetaData.FunctionName, err)
+				continue
+			}
+			f.UpdateInstancesStatus(funcInstances)
 		}
 		time.Sleep(time.Second)
 	}
-
 }
-func (f *FuncManager) UpdateFuncInstancesStatus(funcInstances []model.FuncInstance) bool {
+
+func (f *FuncManager) UpdateInstancesStatus(funcInstances []model.FuncInstance) {
 	// step1: 检查是否所有实例已经就绪
-	isAllReady := true
 	var taskList []string
-	taskMap := make(map[string]int)
-	// TODO: 需要处理首次创建失败后重试的场景
-	for i, instance := range funcInstances {
-		if instance.LastStatus != instance.DesiredStatus {
-			isAllReady = false
+	taskMap := make(map[int][]int)
+	var updateIns []model.FuncInstance
+	for _, instance := range funcInstances {
+		if instance.LastStatus != instance.DesiredStatus || instance.UpdatedAt.Add(10*time.Second).Before(time.Now()) {
 			tasks, err := f.awsClient.GetAllTasks(instance.AwsServiceName)
 			if err != nil {
 				f.logger.Errorf("get %s's all tasks failed, err: %v", instance.AwsServiceName, err)
 				continue
 			}
-			if tasks == nil || len(tasks) != 1 {
-				funcInstances[i].LastStatus = "NOT_CREATED"
+			updateIns = append(updateIns, instance)
+			updateIdx := len(updateIns) - 1
+			if tasks == nil || len(tasks) == 0 {
+				updateIns[updateIdx].LastStatus = "NOT_CREATED"
 			} else {
-				taskList = append(taskList, tasks[0])
-				taskMap[tasks[0]] = i
+				// 如果task多于1个，说明有的task挂了，重新启动了其他的task
+				for _, task := range tasks {
+					taskList = append(taskList, task)
+					if taskMap[updateIdx] == nil {
+						taskMap[updateIdx] = []int{}
+					}
+					taskMap[updateIdx] = append(taskMap[updateIdx], len(taskList)-1)
+				}
 			}
 		}
 	}
-	if isAllReady {
-		return isAllReady
-	} else if len(taskList) == 0 {
-		// task not created
-		return false
+	if len(taskList) == 0 {
+		// no need to update
+		return
 	}
 
-	// step2: 未就绪的实例获取更新当前状态
+	// step2: 获取实例当前状态
 	output, err := f.awsClient.DescribeTasks(taskList)
 	if err != nil {
 		f.logger.Errorf("describe tasks failed, taskList: %v, err: %v", taskList, err)
-		return false
+		return
 	}
-	for _, task := range output.Tasks {
-		cpu, _ := strconv.Atoi(*task.Cpu)
-		memory, _ := strconv.Atoi(*task.Memory)
-		publicIpv4, privateIpv4 := "", ""
-		if task.Attachments != nil && len(task.Attachments) != 0 {
-			for _, d := range task.Attachments[0].Details {
-				if d.Name != nil && *d.Name == "networkInterfaceId" {
-					publicIpv4, _ = f.awsClient.GetPublicIpv4(*d.Value)
-				}
-				if d.Name != nil && *d.Name == "privateIPv4Address" {
-					privateIpv4 = *d.Value
+
+	for i, _ := range updateIns {
+		var updateTask *types.Task = nil
+		for _, taskIdx := range taskMap[i] {
+			task := output.Tasks[taskIdx]
+			if updateTask == nil {
+				updateTask = &task
+			} else {
+				if task.CreatedAt.After(*updateTask.CreatedAt) {
+					updateTask = &task
 				}
 			}
 		}
-		instanceIdx := taskMap[*task.TaskArn]
-		funcInstances[instanceIdx].AwsTaskArn = *task.TaskArn
-		if f.usePublicIpv4 {
-			funcInstances[instanceIdx].Ipv4 = privateIpv4
+		if updateTask == nil {
+			updateIns[i].LastStatus = "NOT_CREATED"
 		} else {
-			funcInstances[instanceIdx].Ipv4 = publicIpv4
+			cpu, _ := strconv.Atoi(*updateTask.Cpu)
+			memory, _ := strconv.Atoi(*updateTask.Memory)
+			publicIpv4, privateIpv4 := "", ""
+			if updateTask.Attachments != nil && len(updateTask.Attachments) != 0 {
+				for _, d := range updateTask.Attachments[0].Details {
+					if d.Name != nil && *d.Name == "networkInterfaceId" {
+						publicIpv4, _ = f.awsClient.GetPublicIpv4(*d.Value)
+					}
+					if d.Name != nil && *d.Name == "privateIPv4Address" {
+						privateIpv4 = *d.Value
+					}
+				}
+			}
+			updateIns[i].AwsTaskArn = *updateTask.TaskArn
+			if f.usePublicIpv4 {
+				updateIns[i].Ipv4 = publicIpv4
+			} else {
+				updateIns[i].Ipv4 = privateIpv4
+			}
+			updateIns[i].Cpu = int32(cpu)
+			updateIns[i].Memory = int32(memory)
+			updateIns[i].LastStatus = *updateTask.LastStatus
+			updateIns[i].DesiredStatus = *updateTask.DesiredStatus
 		}
-		funcInstances[instanceIdx].Cpu = int32(cpu)
-		funcInstances[instanceIdx].Memory = int32(memory)
-		funcInstances[instanceIdx].LastStatus = *task.LastStatus
-		funcInstances[instanceIdx].DesiredStatus = *task.DesiredStatus
 	}
-	if err := f.mysql.UpdateFuncInstanceBatch(funcInstances); err != nil {
+	if err := f.mysql.UpdateFuncInstanceBatch(updateIns); err != nil {
 		f.logger.Errorf("update task status failed, err: %v", err)
 	}
-	return false
 }
 
 func (f *FuncManager) DeleteFunction(req *api.DeleteFunctionRequest) error {
@@ -445,7 +463,6 @@ func (f *FuncManager) FunctionAutoScaling() {
 			f.logger.Errorf("get all req failed, err: %v", err)
 			continue
 		}
-		f.logger.Debugf("current req size: %d", len(allReqs))
 		hisReqs.PushFront(allReqs)
 		if hisReqs.Len() < windowLen {
 			continue
@@ -509,6 +526,7 @@ func (f *FuncManager) GetAllReq() ([]*reqscheduler.Request, error) {
 			RequiredMemory: req.RequiredMemory,
 		})
 	}
+	f.logger.Debugf("scheduled req num: %d, queued req num: %d", len(scheduledReqs), len(queuedReqs))
 	return allReq, nil
 }
 
@@ -541,6 +559,7 @@ func (f *FuncManager) CalResScale(hisReqQueue *list.List) (map[string][]*ResScal
 	}
 
 	allInsList, err := f.mysql.GetFuncInstanceByCondition(map[string]interface{}{})
+	f.logger.Debugf("cuurent ins num: %d", len(allInsList))
 	if err != nil {
 		return nil, err
 	}
@@ -572,7 +591,7 @@ func (f *FuncManager) CalResScale(hisReqQueue *list.List) (map[string][]*ResScal
 		avgResDemandMap[metaData.FunctionName] = make(map[[2]int32]float64)
 		for i := 0; i < hisReqQueue.Len(); i++ {
 			for res, demand := range resDemandMap[i][metaData.FunctionName] {
-				avgResDemandMap[metaData.FunctionName][res] += demand / float64(hisReqQueue.Len())
+				avgResDemandMap[metaData.FunctionName][res] += demand / (float64(hisReqQueue.Len()) * config.GetConfig().ServerConfig.AutoScalingThreshold)
 			}
 		}
 	}
@@ -581,10 +600,11 @@ func (f *FuncManager) CalResScale(hisReqQueue *list.List) (map[string][]*ResScal
 	for funcName, metaData := range funcMetaDataMap {
 		ret[funcName] = []*ResScale{}
 		for _, res := range metaData.ResSpecList {
+			expectResDemand := min(res.MaxReplica, max(res.MinReplica, int32(math.Round(avgResDemandMap[funcName][[2]int32{res.Cpu, res.Memory}]))))
 			ret[funcName] = append(ret[funcName], &ResScale{
 				Cpu:      res.Cpu,
 				Memory:   res.Memory,
-				ScaleCnt: min(res.MaxReplica, max(res.MinReplica, int32(math.Round(avgResDemandMap[funcName][[2]int32{res.Cpu, res.Memory}])))) - currentResMap[funcName][[2]int32{res.Cpu, res.Memory}],
+				ScaleCnt: expectResDemand - currentResMap[funcName][[2]int32{res.Cpu, res.Memory}],
 			})
 		}
 	}

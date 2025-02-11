@@ -26,12 +26,11 @@ import (
 	"github.com/AgentGuo/spike/pkg/reqscheduler"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	"log"
 	"net"
 	"net/http"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 )
 
 type server struct {

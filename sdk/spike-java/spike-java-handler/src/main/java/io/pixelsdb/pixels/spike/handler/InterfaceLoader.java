@@ -58,8 +58,13 @@ public class InterfaceLoader {
                 System.exit(1);
             }
             RequestHandler myInterface = serviceLoader.iterator().next();
+            // 配置keepalive选项
             Server server = ServerBuilder.forPort(50052)
-                    .addService(new FunctionServiceImpl(myInterface))
+                    // 设置keepalive选项
+                    .keepAliveTime(10, java.util.concurrent.TimeUnit.SECONDS) // 每10秒发送一次心跳
+                    .keepAliveTimeout(5, java.util.concurrent.TimeUnit.SECONDS) // 等待心跳响应的最大时间是5秒
+                    .permitKeepAliveWithoutCalls(true) // 即使没有请求，也允许发送心跳
+                    .addService(new FunctionServiceImpl(myInterface))  // 添加服务实现
                     .build()
                     .start();
 

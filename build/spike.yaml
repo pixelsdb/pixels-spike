@@ -2,6 +2,7 @@ server_config:
   grpc_port: 13306
   http_port: 8080
   request_timeout: 600 # in seconds
+  max_retry: 3
 
   # log config
   log_level: info # debug/info/warn/error
@@ -18,7 +19,7 @@ server_config:
   # auto-scaling config
   auto_scaling_step: 5 # auto-scaling detection step(in seconds)
   auto_scaling_window: 60 # auto-scaling windows size(in seconds)
-  resource_oversold_ratio: 1.5 # resource oversold ratio
+  auto_scaling_threshold: 0.8 # auto-scaling threshold
 
 aws_config:
   use_public_ipv4: true

@@ -5,12 +5,12 @@ server_config:
   max_retry: 3
 
   # log config
-  log_level: info # debug/info/warn/error
-  log_to_file: false
-  log_to_std: true
+  log_level: debug # debug/info/warn/error
+  log_to_file: true
+  log_to_std: false
 
   # resource_pool_config
-  hot_resource_pool: EC2 # EC2/Fargate/FargateSpot
+  hot_resource_pool: Fargate # EC2/Fargate/FargateSpot
   cold_resource_pool: Fargate
 
   # mysql config

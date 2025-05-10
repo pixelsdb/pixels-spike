@@ -19,6 +19,8 @@ package reqscheduler
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/AgentGuo/spike/api"
 	"github.com/AgentGuo/spike/cmd/server/config"
 	"github.com/AgentGuo/spike/pkg/logger"
@@ -30,28 +32,19 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
-	"sort"
-	"time"
 )
 
-type Request struct {
-	FunctionName    string
-	RequestID       uint64
-	ReqPayload      string
-	RequiredCpu     int32
-	RequiredMemory  int32
-	RespPayloadChan chan Response
-}
-
+// Response 表示请求的响应
 type Response struct {
 	ResponsePayload string
-	err             error
+	Err             error
 }
 
 type ReqScheduler struct {
+	reqQueue       *ReqQueue
 	mysql          *storage.Mysql
 	logger         *logrus.Logger
-	reqQueue       *ReqQueue
+	scheduler      Scheduler
 	flake          *sonyflake.Sonyflake
 	triggerCh      chan struct{}
 	requestTimeout int
@@ -60,6 +53,7 @@ type ReqScheduler struct {
 func NewReqScheduler() *ReqScheduler {
 	mysqlClient := storage.NewMysql()
 	r := &ReqScheduler{
+		scheduler:      &BaseScheduler{},
 		mysql:          mysqlClient,
 		logger:         logger.GetLogger(),
 		reqQueue:       NewReqQueue(),
@@ -83,9 +77,7 @@ func (r *ReqScheduler) ScheduleRoutine() {
 	for {
 		select {
 		case <-ticker.C:
-			break
 		case <-r.triggerCh:
-			break
 		}
 		r.Schedule()
 	}
@@ -108,93 +100,53 @@ func (r *ReqScheduler) Schedule() {
 		return
 	}
 
-	// step4: get processing request
-	reqScheduleInfo, err := r.mysql.GetReqScheduleInfoByFunctionName(req.FunctionName)
+	// step3: get processing request
+	storageReqScheduleInfo, err := r.mysql.GetReqScheduleInfoByFunctionName(req.FunctionName)
 	if err != nil {
 		r.logger.Errorf("get request schedule info failed, %v", err)
 		return
 	}
+	reqScheduleInfo := convertToReqScheduleInfo(storageReqScheduleInfo)
 
-	// step5: rank function instance
-	type instanceStat struct {
-		awsServiceName  string
-		ipv4            string
-		cpu             int32
-		memory          int32
-		cpuUsed         int32
-		memoryUsed      int32
-		cpuUsageRate    float64
-		memoryUsageRate float64
-		avgUsageRate    float64
-	}
-	insStatMap := make(map[string]*instanceStat)
+	// step4: prepare instance statistics
+	insStatMap := make(map[string]*InstanceStat)
 	for _, instance := range funcInstances {
-		insStatMap[instance.AwsServiceName] = &instanceStat{
-			awsServiceName: instance.AwsServiceName,
-			ipv4:           instance.Ipv4,
-			cpu:            instance.Cpu,
-			memory:         instance.Memory,
-			cpuUsed:        0,
-			memoryUsed:     0,
+		insStatMap[instance.AwsServiceName] = &InstanceStat{
+			AwsServiceName: instance.AwsServiceName,
+			Ipv4:           instance.Ipv4,
+			Cpu:            instance.Cpu,
+			Memory:         instance.Memory,
+			CpuUsed:        0,
+			MemoryUsed:     0,
 		}
-	}
-	for _, reqInfo := range reqScheduleInfo {
-		if _, ok := insStatMap[reqInfo.PlacedAwsServiceName]; ok {
-			insStatMap[reqInfo.PlacedAwsServiceName].cpuUsed += reqInfo.RequiredCpu
-			insStatMap[reqInfo.PlacedAwsServiceName].memoryUsed += reqInfo.RequiredMemory
-		}
-	}
-	insStatList := make([]*instanceStat, 0, len(insStatMap))
-	for _, v := range insStatMap {
-		v.cpuUsageRate = float64(v.cpuUsed) / float64(v.cpu)
-		//v.memoryUsageRate = float64(v.memoryUsed) / float64(v.memory)
-		//v.avgUsageRate = (v.cpuUsageRate + v.avgUsageRate) / 2
-		// 仅考虑cpu使用率
-		v.avgUsageRate = v.cpuUsageRate
-		insStatList = append(insStatList, v)
 	}
 
-	sort.Slice(insStatList, func(i, j int) bool {
-		if insStatList[i].cpu != insStatList[j].cpu {
-			return insStatList[i].cpu < insStatList[j].cpu
-		} else if insStatList[i].memory != insStatList[j].memory {
-			return insStatList[i].memory < insStatList[j].memory
-		} else {
-			return insStatList[i].avgUsageRate > insStatList[j].avgUsageRate
-		}
-	})
-
-	// step6: chose function instance to send request
-	var chosenInsIpv4, choseAwsServiceName string
-	for _, insStat := range insStatList {
-		if insStat.cpuUsed+req.RequiredCpu <= insStat.cpu && insStat.memoryUsed+req.RequiredMemory <= insStat.memory {
-			chosenInsIpv4 = insStat.ipv4
-			choseAwsServiceName = insStat.awsServiceName
-			break
-		}
-	}
-	if chosenInsIpv4 == "" {
+	// step5: use scheduler to choose instance
+	chosenIns := r.scheduler.Schedule(req, reqScheduleInfo, insStatMap)
+	if chosenIns == nil {
 		r.logger.Warnf("no available instance to handle request")
 		return
 	}
-	newReqScheduleInfo := &model.ReqScheduleInfo{
+
+	// step6: update schedule info and process request
+	newReqScheduleInfo := &ReqScheduleInfo{
 		ReqId:                req.RequestID,
 		ReqPayload:           req.ReqPayload,
 		FunctionName:         req.FunctionName,
-		PlacedAwsServiceName: choseAwsServiceName,
-		PlacedInsIpv4:        chosenInsIpv4,
+		PlacedAwsServiceName: chosenIns.PlacedAwsServiceName,
+		PlacedInsIpv4:        chosenIns.PlacedInsIpv4,
 		RequiredCpu:          req.RequiredCpu,
 		RequiredMemory:       req.RequiredMemory,
 	}
-	err = r.mysql.UpdateReqScheduleInfo(newReqScheduleInfo)
+	err = r.mysql.UpdateReqScheduleInfo(convertToStorageReqScheduleInfo(newReqScheduleInfo))
 	if err != nil {
 		r.logger.Errorf("update req schedule info failed, %v", err)
 		return
 	}
 	r.reqQueue.Pop()
 	r.logger.Infof("schedule request %d(function_name: %s, cpu: %d, memory: %d) to node: %s(%s)",
-		req.RequestID, req.FunctionName, req.RequiredCpu, req.RequiredMemory, choseAwsServiceName, chosenInsIpv4)
-	go r.CallInstanceFunctionRoutine(req, chosenInsIpv4)
+		req.RequestID, req.FunctionName, req.RequiredCpu, req.RequiredMemory, chosenIns.PlacedAwsServiceName, chosenIns.PlacedInsIpv4)
+	go r.CallInstanceFunctionRoutine(req, chosenIns.PlacedInsIpv4)
 }
 
 func (r *ReqScheduler) SubmitRequest(req *api.CallFunctionRequest, respChan chan Response) error {
@@ -216,6 +168,7 @@ func (r *ReqScheduler) SubmitRequest(req *api.CallFunctionRequest, respChan chan
 
 	// step2: submit into request queue
 	r.reqQueue.Push(request)
+	// 触发调度
 	r.triggerCh <- struct{}{}
 	return nil
 }
@@ -241,12 +194,12 @@ func (r *ReqScheduler) CallFunction(req *api.CallFunctionRequest) (*api.CallFunc
 
 		// step2: wait response
 		resp := <-respChan
-		if resp.err != nil {
+		if resp.Err != nil {
 			if i >= config.GetConfig().ServerConfig.MaxRetry-1 {
-				r.logger.Errorf("get response error and reach max retry, %v", resp.err)
-				return nil, resp.err
+				r.logger.Errorf("get response error and reach max retry, %v", resp.Err)
+				return nil, resp.Err
 			} else {
-				r.logger.Warnf("get response error, need retry, err: %v", resp.err)
+				r.logger.Warnf("get response error, need retry, err: %v", resp.Err)
 				continue
 			}
 		}
@@ -262,7 +215,7 @@ func (r *ReqScheduler) CallInstanceFunctionRoutine(req *Request, instanceIpv4 st
 	respPayload, err := r.CallInstanceFunction(req.ReqPayload, req.RequestID, instanceIpv4)
 	resp := Response{
 		ResponsePayload: respPayload,
-		err:             err,
+		Err:             err,
 	}
 	req.RespPayloadChan <- resp
 	err = r.mysql.DeleteReqScheduleInfo(req.RequestID)
@@ -292,7 +245,7 @@ func (r *ReqScheduler) CallInstanceFunction(reqPayload string, reqID uint64, ins
 	}
 	defer conn.Close() // 确保连接关闭
 	workerServiceClient := worker.NewSpikeWorkerServiceClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(r.requestTimeout)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(config.GetConfig().ServerConfig.RequestTimeout)*time.Second)
 	defer cancel()
 	funcServiceResp, err := workerServiceClient.CallWorkerFunction(ctx, &worker.CallWorkerFunctionReq{
 		Payload:   reqPayload,
@@ -306,11 +259,45 @@ func (r *ReqScheduler) CallInstanceFunction(reqPayload string, reqID uint64, ins
 }
 
 // GetReqScheduleInfo 获取函数调度信息
-func (r *ReqScheduler) GetReqScheduleInfo(functionName string) ([]model.ReqScheduleInfo, error) {
-	return r.mysql.GetReqScheduleInfoByFunctionName(functionName)
+func (r *ReqScheduler) GetReqScheduleInfo(functionName string) ([]*ReqScheduleInfo, error) {
+	storageInfo, err := r.mysql.GetReqScheduleInfoByFunctionName(functionName)
+	if err != nil {
+		return nil, err
+	}
+	return convertToReqScheduleInfo(storageInfo), nil
 }
 
 // CleanReqScheduleInfo 清除函数调度信息，进程重启时调用
 func (r *ReqScheduler) CleanReqScheduleInfo() error {
 	return r.mysql.DeleteAllReqScheduleInfo()
+}
+
+// convertToReqScheduleInfo 将存储层的 ReqScheduleInfo 转换为调度器的 ReqScheduleInfo
+func convertToReqScheduleInfo(storageInfo []model.ReqScheduleInfo) []*ReqScheduleInfo {
+	result := make([]*ReqScheduleInfo, len(storageInfo))
+	for i, info := range storageInfo {
+		result[i] = &ReqScheduleInfo{
+			ReqId:                info.ReqId,
+			ReqPayload:           info.ReqPayload,
+			FunctionName:         info.FunctionName,
+			PlacedAwsServiceName: info.PlacedAwsServiceName,
+			PlacedInsIpv4:        info.PlacedInsIpv4,
+			RequiredCpu:          info.RequiredCpu,
+			RequiredMemory:       info.RequiredMemory,
+		}
+	}
+	return result
+}
+
+// convertToStorageReqScheduleInfo 将调度器的 ReqScheduleInfo 转换为存储层的 ReqScheduleInfo
+func convertToStorageReqScheduleInfo(info *ReqScheduleInfo) *model.ReqScheduleInfo {
+	return &model.ReqScheduleInfo{
+		ReqId:                info.ReqId,
+		ReqPayload:           info.ReqPayload,
+		FunctionName:         info.FunctionName,
+		PlacedAwsServiceName: info.PlacedAwsServiceName,
+		PlacedInsIpv4:        info.PlacedInsIpv4,
+		RequiredCpu:          info.RequiredCpu,
+		RequiredMemory:       info.RequiredMemory,
+	}
 }

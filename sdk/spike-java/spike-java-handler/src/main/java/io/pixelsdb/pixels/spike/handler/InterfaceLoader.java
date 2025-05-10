@@ -27,22 +27,22 @@ import java.util.ServiceLoader;
 public class InterfaceLoader {
     public static void main(String[] args) {
         if (args.length < 1) {
-            System.err.println("请提供 JAR 文件路径作为参数");
+            System.err.println("Please provide JAR file path as argument");
             System.exit(1);
         }
 
         try {
-            // 从 args 参数获取 JAR 包路径
+            // Get JAR file path from args
             File jarFile = new File(args[0]);
             if (!jarFile.exists() || !jarFile.isFile()) {
-                System.err.println("提供的路径不是一个有效的 JAR 文件");
+                System.err.println("The provided path is not a valid JAR file");
                 System.exit(1);
             }
-//            // 打印 JAR 文件内容
+//            // Print JAR file contents
 //            try (JarFile jar = new JarFile(jarFile)) {
 //                jar.stream().forEach(entry -> System.out.println(entry.getName()));
 //            } catch (IOException e) {
-//                System.err.println("无法读取 JAR 文件内容: " + e.getMessage());
+//                System.err.println("Failed to read JAR file contents: " + e.getMessage());
 //                e.printStackTrace();
 //                System.exit(1);
 //            }
@@ -51,27 +51,27 @@ public class InterfaceLoader {
             URLClassLoader classLoader = new URLClassLoader(new URL[]{jarUrl}, InterfaceLoader.class.getClassLoader());
             Thread.currentThread().setContextClassLoader(classLoader);
 
-            // 使用 ServiceLoader 加载实现了 MyInterface 的类
+            // Use ServiceLoader to load classes implementing MyInterface
             ServiceLoader<RequestHandler> serviceLoader = ServiceLoader.load(RequestHandler.class, classLoader);
             if (!serviceLoader.iterator().hasNext()) {
-                System.err.println("ServiceLoader 加载失败: 没有找到实现 RequestHandler 接口的类");
+                System.err.println("ServiceLoader failed: No class implementing RequestHandler interface found");
                 System.exit(1);
             }
             RequestHandler myInterface = serviceLoader.iterator().next();
-            // 配置keepalive选项
+            // Configure keepalive options
             Server server = ServerBuilder.forPort(50052)
-                    // 设置keepalive选项
-                    .keepAliveTime(10, java.util.concurrent.TimeUnit.SECONDS) // 每10秒发送一次心跳
-                    .keepAliveTimeout(5, java.util.concurrent.TimeUnit.SECONDS) // 等待心跳响应的最大时间是5秒
-                    .permitKeepAliveWithoutCalls(true) // 即使没有请求，也允许发送心跳
-                    .addService(new FunctionServiceImpl(myInterface))  // 添加服务实现
+                    // Set keepalive options
+                    .keepAliveTime(10, java.util.concurrent.TimeUnit.SECONDS) // Send heartbeat every 10 seconds
+                    .keepAliveTimeout(5, java.util.concurrent.TimeUnit.SECONDS) // Maximum time to wait for heartbeat response is 5 seconds
+                    .permitKeepAliveWithoutCalls(true) // Allow sending heartbeat even without requests
+                    .addService(new FunctionServiceImpl(myInterface))  // Add service implementation
                     .build()
                     .start();
 
             System.out.println("Server started, listening on " + server.getPort());
             server.awaitTermination();
         } catch (Exception e) {
-            System.err.println("ClassLoader 加载失败: " + e.getMessage());
+            System.err.println("ClassLoader failed: " + e.getMessage());
             e.printStackTrace();
             System.exit(1);
         }

@@ -81,3 +81,8 @@ hs_err_pid*
 
 target
 
+*.pb.go
+*.pb.gw.go
+
+api/swagger
+

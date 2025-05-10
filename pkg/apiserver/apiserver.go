@@ -19,6 +19,10 @@ package apiserver
 import (
 	"context"
 	"fmt"
+	"log"
+	"net"
+	"net/http"
+
 	"github.com/AgentGuo/spike/api"
 	"github.com/AgentGuo/spike/cmd/server/config"
 	"github.com/AgentGuo/spike/pkg/funcmanager"
@@ -28,9 +32,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"log"
-	"net"
-	"net/http"
 )
 
 type server struct {

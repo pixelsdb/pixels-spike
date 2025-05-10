@@ -18,10 +18,20 @@ package reqscheduler
 
 import (
 	"container/list"
+	"sync"
+
 	"github.com/AgentGuo/spike/pkg/logger"
 	"github.com/sirupsen/logrus"
-	"sync"
 )
+
+type Request struct {
+	FunctionName    string
+	RequestID       uint64
+	ReqPayload      string
+	RequiredCpu     int32
+	RequiredMemory  int32
+	RespPayloadChan chan Response
+}
 
 type ReqQueue struct {
 	mutex  sync.RWMutex

@@ -1,0 +1,190 @@
+syntax = "proto3";
+
+package spike;
+
+option java_package = "io.pixelsdb.pixels.spike.handler";
+option java_outer_classname = "SpikeServiceProto";
+option go_package = "github.com/AgentGuo/spike/api";
+
+import "google/api/annotations.proto";
+
+// The spike service definition.
+service SpikeService {
+  // Calls a function.
+  rpc CallFunction(CallFunctionRequest) returns (CallFunctionResponse) {
+    option (google.api.http) = {
+      post: "/v1/call_function"
+      body: "*"
+    };
+  }
+
+  // Adds a new function.
+  rpc CreateFunction(CreateFunctionRequest) returns (CreateFunctionResponse) {
+    option (google.api.http) = {
+      post: "/v1/create_function"
+      body: "*"
+    };
+  }
+
+  // Deletes an existing function.
+  rpc DeleteFunction(DeleteFunctionRequest) returns (DeleteFunctionResponse) {
+    option (google.api.http) = {
+      delete: "/v1/delete_function/{function_name}"
+    };
+  }
+
+  // Get all functions.
+  rpc GetAllFunctions(Empty) returns (GetAllFunctionsResponse) {
+    option (google.api.http) = {
+      get: "/v1/get_all_functions"
+    };
+  }
+
+  // Get function resources.
+  rpc GetFunctionResources(GetFunctionResourcesRequest) returns (GetFunctionResourcesResponse) {
+    option (google.api.http) = {
+      get: "/v1/get_function_resources/{function_name}"
+    };
+  }
+
+  // Scale function.
+  rpc ScaleFunction(ScaleFunctionRequest) returns (Empty) {
+    option (google.api.http) = {
+      post: "/v1/scale_function"
+      body: "*"
+    };
+  }
+
+  // Get schedule info.
+  rpc GetReqScheduleInfo(GetReqScheduleInfoRequest) returns (GetReqScheduleInfoResponse) {
+    option (google.api.http) = {
+      get: "/v1/get_req_schedule_info/{function_name}"
+    };
+  }
+}
+
+message GetReqScheduleInfoRequest{
+  string function_name = 1;
+}
+
+message GetReqScheduleInfoResponse{
+  string function_name = 1;
+  message ReqScheduleInfo{
+    uint64 req_id = 1;
+    string req_payload = 2;
+    string function_name = 3;
+    string placed_aws_service_name = 4;
+    string placed_ins_ipv4 = 5;
+    int32 required_cpu = 6;
+    int32 required_memory = 7;
+  }
+  repeated ReqScheduleInfo req_schedule_info = 2;
+}
+
+message Empty {}
+
+message FunctionMetaData{
+  string function_name = 1;
+  string image_url = 2;
+  repeated ResourceSpec resources = 3;
+}
+
+message GetAllFunctionsResponse{
+  repeated FunctionMetaData functions = 1;
+}
+
+message ScaleFunctionRequest{
+  string function_name = 1;
+  int32 cpu = 2;
+  int32 memory = 3;
+  int32 scale_cnt = 4;
+}
+
+// The request message containing the function name and input.
+message CallFunctionRequest {
+  string function_name = 1;
+  string payload = 2;
+  int32 cpu = 3;
+  int32 memory = 4;
+}
+
+// The response message containing the function output.
+message CallFunctionResponse {
+  string payload = 1;
+  int32 error_code = 2;
+}
+
+message ResourceSpec{
+  int32 cpu = 1;
+  int32 memory = 2;
+  int32 min_replica = 3;
+  int32 max_replica = 4;
+}
+
+// The request message for adding a new function.
+message CreateFunctionRequest {
+  string function_name = 1;
+  string image_url = 2;
+  repeated ResourceSpec resources = 3;
+}
+
+// The response message for adding a new function.
+message CreateFunctionResponse {
+  int32 code = 1;
+  string message = 2;
+}
+
+// The request message for deleting a function.
+message DeleteFunctionRequest {
+  string function_name = 1;
+}
+
+// The response message for deleting a function.
+message DeleteFunctionResponse {
+  int32 code = 1;
+  string message = 2;
+}
+
+// The request message for updating a new function.
+message UpdateFunctionRequest {
+  string function_name = 1;
+  string task_name = 2;
+  string task_version = 3;
+  bool enable_auto_scaling = 4;
+}
+
+// The response message for updating a new function.
+message UpdateFunctionResponse {
+  int32 code = 1;
+  string message = 2;
+}
+
+message UpdateFuncInstanceRequest {
+  string function_name = 1;
+  int32 cpu_num = 2;
+  int32 memory_size = 3;
+  int32 instance_num = 4;
+}
+
+message UpdateFuncInstanceResponse {
+  int32 code = 1;
+  string message = 2;
+}
+
+message GetFunctionResourcesRequest{
+  string function_name = 1;
+}
+
+message ResourceStatus{
+  string ipv4 = 1;
+  int32 cpu = 2;
+  int32 memory = 3;
+  string launch_type = 4;
+  string last_status = 5;
+  string desired_status = 6;
+}
+
+message GetFunctionResourcesResponse{
+  string function_name = 1;
+  repeated ResourceStatus resources = 2;
+}

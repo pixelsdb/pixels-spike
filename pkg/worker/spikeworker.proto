@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+option go_package = "github.com/AgentGuo/spike/pkg/worker";
+option java_package = "io.pixelsdb.pixels.spike.handler";
+option java_outer_classname = "SpikeWorker";
+
+// spike worker暴露给spike server的服务
+service SpikeWorkerService {
+  rpc CallWorkerFunction(CallWorkerFunctionReq) returns (CallWorkerFunctionResp);
+}
+
+message CallWorkerFunctionReq {
+  string payload = 1;
+  uint64 requestId = 2;
+}
+
+message CallWorkerFunctionResp {
+  string payload = 1;
+  uint64 requestId = 2;
+}

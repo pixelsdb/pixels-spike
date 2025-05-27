@@ -1,6 +1,6 @@
 # Spike java
 
-You can use spike-java to develop your functions. spike-java is a Java-based implementation framework that you can use to develop your functions.
+You can use spike-java to implement Spike functions and send invoke requests to spike.
 
 ---
 
@@ -8,12 +8,12 @@ You can use spike-java to develop your functions. spike-java is a Java-based imp
 
 Step 1: Install spike-java and run the following command in the `spike-java` directory
 ```bash
-mvn clean install
+mvn clean clean package install
 ```
 
-Step 2: Implement the `io.pixelsdb.pixels.spike.handler.RequestHandler` interface. You need to implement the `execute` method. You can refer to the implementation of `spike-java-example`.
+Step 2: Implement the `io.pixelsdb.pixels.spike.handler.RequestHandler` interface. You mainly have to implement the `execute` method. Refer to the implementation of `spike-java-example`.
 
-Step 3: Package the implemented interface into a Docker image. Here, take `spike-java-example` as an example and execute the following command.
+Step 3: Package the implemented interface into a Docker image. Here, take `spike-java-example` as an example and execute the following commands.
 
 in x86_64:
 ```bash

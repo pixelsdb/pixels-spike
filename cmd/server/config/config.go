@@ -17,11 +17,12 @@ limitations under the License.
 package config
 
 import (
-	"github.com/AgentGuo/spike/pkg/constants"
-	"gopkg.in/yaml.v3"
 	"log"
 	"os"
 	"sync"
+
+	"github.com/AgentGuo/spike/pkg/constants"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -40,6 +41,9 @@ type ServerConfig struct {
 	HttpPort       int `yaml:"http_port"`
 	RequestTimeout int `yaml:"request_timeout"`
 	MaxRetry       int `yaml:"max_retry"`
+
+	// scheduler config
+	SchedulerType string `yaml:"scheduler_type"`
 
 	// log config
 	LogLevel  string `yaml:"log_level"`
@@ -81,6 +85,7 @@ func GetConfig() *SpikeConfig {
 				HttpPort:             8080,
 				RequestTimeout:       600,
 				MaxRetry:             3,
+				SchedulerType:        "base",
 				LogLevel:             "debug",
 				LogToFile:            false,
 				LogToStd:             true,

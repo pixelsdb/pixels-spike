@@ -40,6 +40,16 @@ type Response struct {
 	Err             error
 }
 
+// SchedulerType 调度器类型
+type SchedulerType string
+
+const (
+	// BaseSchedulerType 基础调度器
+	BaseSchedulerType SchedulerType = "base"
+	// OneTaskPerNodeSchedulerType 单任务调度器
+	OneTaskPerNodeSchedulerType SchedulerType = "one_task_per_node"
+)
+
 type ReqScheduler struct {
 	reqQueue       *ReqQueue
 	mysql          *storage.Mysql
@@ -52,8 +62,18 @@ type ReqScheduler struct {
 
 func NewReqScheduler() *ReqScheduler {
 	mysqlClient := storage.NewMysql()
+
+	// 根据配置选择调度器
+	var scheduler Scheduler
+	switch config.GetConfig().ServerConfig.SchedulerType {
+	case string(OneTaskPerNodeSchedulerType):
+		scheduler = &OneTaskPerNodeScheduler{}
+	default:
+		scheduler = &BaseScheduler{}
+	}
+
 	r := &ReqScheduler{
-		scheduler:      &BaseScheduler{},
+		scheduler:      scheduler,
 		mysql:          mysqlClient,
 		logger:         logger.GetLogger(),
 		reqQueue:       NewReqQueue(),

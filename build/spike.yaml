@@ -3,6 +3,7 @@ server_config:
   http_port: 8080
   request_timeout: 600 # in seconds
   max_retry: 3
+  scheduler_type: base
 
   # log config
   log_level: debug # debug/info/warn/error

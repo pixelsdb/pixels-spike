@@ -1,7 +1,9 @@
 package reqscheduler
 
 import (
+	"math/rand"
 	"sort"
+	"time"
 )
 
 // InstanceStat 表示函数实例的统计信息
@@ -83,4 +85,46 @@ func (s *BaseScheduler) Schedule(req *Request, reqScheduleInfo []*ReqScheduleInf
 	}
 
 	return nil
+}
+
+// OneTaskPerNodeScheduler 单任务调度器实现，确保每个节点只执行一个任务
+type OneTaskPerNodeScheduler struct{}
+
+// Schedule 实现单任务随机调度算法
+func (s *OneTaskPerNodeScheduler) Schedule(req *Request, reqScheduleInfo []*ReqScheduleInfo, insStatMap map[string]*InstanceStat) *ReqScheduleInfo {
+	// 创建一个map来记录已经调度的节点
+	scheduledNodes := make(map[string]bool)
+	for _, reqInfo := range reqScheduleInfo {
+		scheduledNodes[reqInfo.PlacedAwsServiceName] = true
+	}
+
+	// 找出所有未调度的节点
+	var availableNodes []*InstanceStat
+	for _, stat := range insStatMap {
+		// 如果节点未被调度且满足资源要求
+		if !scheduledNodes[stat.AwsServiceName] &&
+			stat.Cpu >= req.RequiredCpu &&
+			stat.Memory >= req.RequiredMemory {
+			availableNodes = append(availableNodes, stat)
+		}
+	}
+
+	// 如果没有可用节点，返回 nil
+	if len(availableNodes) == 0 {
+		return nil
+	}
+
+	// 随机选择一个可用节点
+	rand.Seed(time.Now().UnixNano())
+	selectedNode := availableNodes[rand.Intn(len(availableNodes))]
+
+	return &ReqScheduleInfo{
+		ReqId:                req.RequestID,
+		ReqPayload:           req.ReqPayload,
+		FunctionName:         req.FunctionName,
+		PlacedAwsServiceName: selectedNode.AwsServiceName,
+		PlacedInsIpv4:        selectedNode.Ipv4,
+		RequiredCpu:          req.RequiredCpu,
+		RequiredMemory:       req.RequiredMemory,
+	}
 }

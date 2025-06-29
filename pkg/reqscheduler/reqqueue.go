@@ -20,7 +20,7 @@ import (
 	"container/list"
 	"sync"
 
-	"github.com/AgentGuo/spike/pkg/logger"
+	"pixelsdb.io/spike/pkg/logger"
 	"github.com/sirupsen/logrus"
 )
 

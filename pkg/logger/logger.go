@@ -17,7 +17,7 @@ limitations under the License.
 package logger
 
 import (
-	"github.com/AgentGuo/spike/cmd/server/config"
+	"pixelsdb.io/spike/cmd/server/config"
 	"github.com/sirupsen/logrus"
 	"io"
 	"os"

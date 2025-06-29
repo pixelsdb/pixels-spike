@@ -17,7 +17,7 @@ limitations under the License.
 package funcmanager
 
 import (
-	"github.com/AgentGuo/spike/api"
+	"pixelsdb.io/spike/api"
 	"testing"
 	"time"
 )

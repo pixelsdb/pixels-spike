@@ -8,10 +8,10 @@ You can use spike-java to implement Spike functions and send invoke requests to 
 
 Step 1: Install spike-java and run the following command in the `spike-java` directory
 ```bash
-mvn clean clean package install
+mvn clean package install -Dgpg.skip
 ```
 
-Step 2: Implement the `io.pixelsdb.pixels.spike.handler.RequestHandler` interface. You mainly have to implement the `execute` method. Refer to the implementation of `spike-java-example`.
+Step 2: Implement the `io.pixelsdb.spike.handler.RequestHandler` interface. You mainly have to implement the `execute` method. Refer to the implementation of `spike-java-example`.
 
 Step 3: Package the implemented interface into a Docker image. Here, take `spike-java-example` as an example and execute the following commands.
 

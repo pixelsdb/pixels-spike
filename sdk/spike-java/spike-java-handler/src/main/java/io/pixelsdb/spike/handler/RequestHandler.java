@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package io.pixelsdb.pixels.spike.handler;
+package io.pixelsdb.spike.handler;
 
-public interface RequestHandler {
+public interface RequestHandler
+{
     SpikeWorker.CallWorkerFunctionResp execute(SpikeWorker.CallWorkerFunctionReq request);
 }

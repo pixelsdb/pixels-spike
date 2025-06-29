@@ -60,10 +60,10 @@
                 <artifactId>protobuf-maven-plugin</artifactId>
                 <version>0.6.1</version>
                 <configuration>
-                    <protocArtifact>com.google.protobuf:protoc:3.19.1:exe:${os.detected.classifier}</protocArtifact>
+                    <protocArtifact>com.google.protobuf:protoc:3.21.7:exe:${os.detected.classifier}</protocArtifact>
                     <pluginId>grpc-java</pluginId>
-                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.42.1:exe:${os.detected.classifier}</pluginArtifact>
-                    <protoSourceRoot>../../../pkg/worker/</protoSourceRoot>
+                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.49.1:exe:${os.detected.classifier}</pluginArtifact>
+                    <protoSourceRoot>../../../proto/</protoSourceRoot>
                 </configuration>
                 <executions>
                     <execution>
@@ -96,7 +96,7 @@
                         <configuration>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>io.pixelsdb.pixels.spike.handler.InterfaceLoader</mainClass>
+                                    <mainClass>io.pixelsdb.spike.handler.InterfaceLoader</mainClass>
                                 </transformer>
                             </transformers>
                             <createDependencyReducedPom>false</createDependencyReducedPom>

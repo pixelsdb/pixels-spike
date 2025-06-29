@@ -14,21 +14,27 @@
  * limitations under the License.
  */
 
-package io.pixelsdb.pixels.spike.handler.impl;
+package io.pixelsdb.spike.handler.impl;
 
-import io.pixelsdb.pixels.spike.handler.RequestHandler;
-import io.pixelsdb.pixels.spike.handler.SpikeWorker;
+import io.pixelsdb.spike.handler.RequestHandler;
+import io.pixelsdb.spike.handler.SpikeWorker;
 
-public class Example implements RequestHandler {
+public class Example implements RequestHandler
+{
     @Override
-    public SpikeWorker.CallWorkerFunctionResp execute(SpikeWorker.CallWorkerFunctionReq request) {
+    public SpikeWorker.CallWorkerFunctionResp execute(SpikeWorker.CallWorkerFunctionReq request)
+    {
         int sleepSeconds = Integer.parseInt(request.getPayload());
-        try {
+        try
+        {
             Thread.sleep(sleepSeconds * 1000L);
-        } catch (InterruptedException e) {
+        }
+        catch (InterruptedException e)
+        {
             throw new RuntimeException(e);
         }
-        // example：反转有效负载字符串
+
+        // example：reverse the payload string
         return SpikeWorker.CallWorkerFunctionResp.newBuilder()
                 .setRequestId(request.getRequestId())
                 .setPayload(new StringBuilder(request.getPayload()).reverse().toString())

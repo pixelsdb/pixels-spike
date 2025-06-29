@@ -1,4 +1,4 @@
-module github.com/AgentGuo/spike
+module pixelsdb.io/spike
 
 go 1.22
 

@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package spike;
 
-option java_package = "io.pixelsdb.pixels.spike.handler";
+option java_package = "io.pixelsdb.spike.handler";
 option java_outer_classname = "SpikeServiceProto";
-option go_package = "github.com/AgentGuo/spike/api";
+option go_package = "pixelsdb.io/spike/api";
 
 import "google/api/annotations.proto";
 

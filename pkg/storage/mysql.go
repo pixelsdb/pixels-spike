@@ -17,9 +17,9 @@ limitations under the License.
 package storage
 
 import (
-	"github.com/AgentGuo/spike/cmd/server/config"
-	"github.com/AgentGuo/spike/pkg/logger"
-	"github.com/AgentGuo/spike/pkg/storage/model"
+	"pixelsdb.io/spike/cmd/server/config"
+	"pixelsdb.io/spike/pkg/logger"
+	"pixelsdb.io/spike/pkg/storage/model"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

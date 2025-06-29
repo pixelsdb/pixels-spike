@@ -10,14 +10,15 @@
 
 还需要为生成protobuf和grpc的go文件安装一些插件:
 ```bash
-# install protoc-gen-go to generate the go source code for protobuf messages
+# 安装 protoc-gen-go（生成普通 Go protobuf 代码）
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-# install protoc-gen-go-grpc to generate the go source code for grpc services
+# 安装 protoc-gen-go-grpc（生成 gRPC 服务代码）
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-# install protoc-gen-grpc-gateway to transport HTTP to grpc
+# 安装 protoc-gen-grpc-gateway（grpc-gateway 支持 HTTP 到 gRPC 的转发）
 go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
-# install protoc-gen-swagger to parse the swagger annotations in the proto files and generate OpenAPI docs
+# 安装 protoc-gen-swagger（生成OpenAPI文档）
 go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger@latest
+```
 
 ### 步骤2：启动 MySQL
 例如，使用 Docker 启动 MySQL，然后创建 `spike` 数据库：

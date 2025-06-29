@@ -21,7 +21,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/AgentGuo/spike/pkg/constants"
+	"pixelsdb.io/spike/pkg/constants"
 	"gopkg.in/yaml.v3"
 )
 

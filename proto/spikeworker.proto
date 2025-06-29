@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-option go_package = "github.com/AgentGuo/spike/pkg/worker";
-option java_package = "io.pixelsdb.pixels.spike.handler";
+option go_package = "pixelsdb.io/spike/pkg/worker";
+option java_package = "io.pixelsdb.spike.handler";
 option java_outer_classname = "SpikeWorker";
 
-// spike worker暴露给spike server的服务
+// the rpc service that spike worker exposes to spike server
 service SpikeWorkerService {
   rpc CallWorkerFunction(CallWorkerFunctionReq) returns (CallWorkerFunctionResp);
 }

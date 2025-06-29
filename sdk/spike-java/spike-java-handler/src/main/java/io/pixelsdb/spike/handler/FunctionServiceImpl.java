@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.pixelsdb.pixels.spike.handler;
+package io.pixelsdb.spike.handler;
 
 import io.grpc.stub.StreamObserver;
 
@@ -27,12 +27,17 @@ public class FunctionServiceImpl extends SpikeWorkerServiceGrpc.SpikeWorkerServi
     }
 
     @Override
-    public void callWorkerFunction(SpikeWorker.CallWorkerFunctionReq request, StreamObserver<SpikeWorker.CallWorkerFunctionResp> responseObserver) {
-        try {
+    public void callWorkerFunction(SpikeWorker.CallWorkerFunctionReq request,
+                                   StreamObserver<SpikeWorker.CallWorkerFunctionResp> responseObserver)
+    {
+        try
+        {
             SpikeWorker.CallWorkerFunctionResp resp = handler.execute(request);
             responseObserver.onNext(resp);
             responseObserver.onCompleted();
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             responseObserver.onError(e);
         }
     }

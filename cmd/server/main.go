@@ -16,7 +16,7 @@ limitations under the License.
 
 package main
 
-import "github.com/AgentGuo/spike/cmd/server/cmd"
+import "pixelsdb.io/spike/cmd/server/cmd"
 
 func main() {
 	cmd.Execute()

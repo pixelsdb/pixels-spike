@@ -17,7 +17,7 @@ limitations under the License.
 package funcmanager
 
 import (
-	"github.com/AgentGuo/spike/pkg/constants"
+	"pixelsdb.io/spike/pkg/constants"
 	"testing"
 )
 

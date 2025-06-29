@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.pixelsdb.pixels.spike.handler;
+package io.pixelsdb.spike.handler;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
@@ -24,17 +24,22 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ServiceLoader;
 
-public class InterfaceLoader {
-    public static void main(String[] args) {
-        if (args.length < 1) {
+public class InterfaceLoader
+{
+    public static void main(String[] args)
+    {
+        if (args.length < 1)
+        {
             System.err.println("Please provide JAR file path as argument");
             System.exit(1);
         }
 
-        try {
+        try
+        {
             // Get JAR file path from args
             File jarFile = new File(args[0]);
-            if (!jarFile.exists() || !jarFile.isFile()) {
+            if (!jarFile.exists() || !jarFile.isFile())
+            {
                 System.err.println("The provided path is not a valid JAR file");
                 System.exit(1);
             }
@@ -53,7 +58,8 @@ public class InterfaceLoader {
 
             // Use ServiceLoader to load classes implementing MyInterface
             ServiceLoader<RequestHandler> serviceLoader = ServiceLoader.load(RequestHandler.class, classLoader);
-            if (!serviceLoader.iterator().hasNext()) {
+            if (!serviceLoader.iterator().hasNext())
+            {
                 System.err.println("ServiceLoader failed: No class implementing RequestHandler interface found");
                 System.exit(1);
             }
@@ -70,7 +76,9 @@ public class InterfaceLoader {
 
             System.out.println("Server started, listening on " + server.getPort());
             server.awaitTermination();
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             System.err.println("ClassLoader failed: " + e.getMessage());
             e.printStackTrace();
             System.exit(1);

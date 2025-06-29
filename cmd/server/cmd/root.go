@@ -17,8 +17,8 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/AgentGuo/spike/cmd/server/config"
-	"github.com/AgentGuo/spike/pkg/apiserver"
+	"pixelsdb.io/spike/cmd/server/config"
+	"pixelsdb.io/spike/pkg/apiserver"
 	"os"
 
 	"github.com/spf13/cobra"

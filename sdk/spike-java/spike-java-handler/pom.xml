@@ -7,11 +7,13 @@
     <parent>
         <artifactId>spike-java</artifactId>
         <groupId>io.pixelsdb</groupId>
-        <version>0.1.0</version>
+        <version>0.1.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>spike-java-handler</artifactId>
+    <name>io.pixelsdb:spike-java-handler</name>
+    <description>The Java handler that sends invoke requests to Spike.</description>
 
     <dependencies>
         <dependency>

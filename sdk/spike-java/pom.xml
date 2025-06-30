@@ -5,11 +5,11 @@
 
     <groupId>io.pixelsdb</groupId>
     <artifactId>spike-java</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
     <packaging>pom</packaging>
 
-    <name>${project.groupId}:${project.artifactId}</name>
-    <description>The Java SDK that helps send invoke requests to Spike.</description>
+    <name>io.pixelsdb:spike-java</name>
+    <description>The Java SDK for Spike.</description>
     <url>https://github.com/pixelsdb/pixels-spike</url>
 
     <licenses>

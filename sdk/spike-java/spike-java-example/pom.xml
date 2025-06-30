@@ -7,11 +7,13 @@
     <parent>
         <artifactId>spike-java</artifactId>
         <groupId>io.pixelsdb</groupId>
-        <version>0.1.0</version>
+        <version>0.1.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>spike-java-example</artifactId>
+    <name>io.pixelsdb:spike-java-example</name>
+    <description>The examples for Spike Java SDK.</description>
 
     <dependencies>
         <dependency>
@@ -41,5 +43,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

@@ -31,7 +31,7 @@ docker pull mysql:8.0.31
 docker run --name spike-mysql -e MYSQL_ROOT_PASSWORD=spikepassword -p 3306:3306 -d mysql:8.0.31
 
 # MySQL 实例启动后，进入 MySQL 容器
-docker exec -it mysql-spike mysql -uroot -pspikepassword -e "CREATE DATABASE spike;"
+docker exec -it spike-mysql mysql -uroot -pspikepassword -e "CREATE DATABASE spike;"
 ```
 
 ### 步骤3：初始化子模块

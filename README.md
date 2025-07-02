@@ -31,7 +31,7 @@ docker pull mysql:8.0.31
 docker run --name spike-mysql -e MYSQL_ROOT_PASSWORD=spikepassword -p 3306:3306 -d mysql:8.0.31
 
 # After the MySQL instance starts, enter the MySQL container
-docker exec -it mysql-spike mysql -uroot -pspikepassword -e "CREATE DATABASE spike;"
+docker exec -it spike-mysql mysql -uroot -pspikepassword -e "CREATE DATABASE spike;"
 ```
 
 ### step3: Initialize submodules
